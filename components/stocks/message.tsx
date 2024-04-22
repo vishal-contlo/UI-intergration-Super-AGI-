@@ -7,8 +7,13 @@ import { CodeBlock } from '../ui/codeblock'
 import { MemoizedReactMarkdown } from '../markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { StreamableValue } from 'ai/rsc'
+import { StreamableValue, useActions, useUIState } from 'ai/rsc'
 import { useStreamableText } from '@/lib/hooks/use-streamable-text'
+import ReactDOM from 'react-dom';
+import React from 'react';
+import { useEffect } from 'react'
+import { AI } from '@/lib/chat/actions'
+
 
 // Different types of message bubbles.
 
@@ -33,6 +38,7 @@ export function BotMessage({
   className?: string
 }) {
   const text = useStreamableText(content)
+  console.log(content);
 
   return (
     <div className={cn('group relative flex items-start md:-ml-12', className)}>
@@ -108,17 +114,102 @@ export function BotCard({
   )
 }
 
-export function SystemMessage({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className={
-        'mt-2 flex items-center justify-center gap-2 text-xs text-gray-500'
-      }
-    >
-      <div className={'max-w-[600px] flex-initial p-2'}>{children}</div>
-    </div>
-  )
+export interface RandomComponentProps {
+  html: string;
+  css: string;
+  javascript: string;
 }
+
+function handleFormSubmission(event: Event) {
+  event.preventDefault(); // Prevent the default form submission behavior
+
+  const formData = new FormData(event.target as HTMLFormElement); // Get form data
+
+  // Convert formData.entries() to an array
+  const formDataArray = Array.from(formData.entries());
+  return formDataArray;
+
+  // Log the form data\
+  // formDataArray.map((option, index) => {
+  //   return {
+  //     [option]: formDataArray[index][option]
+  //   }
+  // })
+  // for (const  [key, value] of formDataArray) {
+  //   console.log(`${key}: ${value}`);
+  // }
+
+}
+
+export function RandomComponent({ html, css, javascript }: RandomComponentProps) {
+  const { submitUserMessage } = useActions();
+  const [_, setMessages] = useUIState<typeof AI>();
+
+  useEffect(() => {
+    // Ensure the container is ready in the DOM
+    const containerReady = setInterval(() => {
+      const containerElement = document.getElementById('random-component-container');
+      if (containerElement) {
+        clearInterval(containerReady);
+        initializeComponent(containerElement);
+      }
+    }, 100); // Check every 100ms
+
+    function initializeComponent(containerElement: HTMLElement) {
+      // Insert HTML into the component
+      containerElement.insertAdjacentHTML('beforeend', html);
+
+      // Create and append the style element
+      const styleElement = document.createElement('style');
+      styleElement.textContent = css;
+      document.head.appendChild(styleElement);
+
+      // Create and append the script element
+      const scriptElement = document.createElement('script');
+      scriptElement.textContent = javascript;
+      document.body.appendChild(scriptElement);
+
+      // Set up form submission handlers
+      setupFormSubmissionHandlers(containerElement);
+
+      // Clean up function
+      return () => {
+        document.head.removeChild(styleElement);
+        document.body.removeChild(scriptElement);
+        containerElement.innerHTML = ''; // Clear the container's content
+      };
+    }
+
+    function setupFormSubmissionHandlers(containerElement: HTMLElement) {
+      const forms = containerElement.querySelectorAll('form');
+      forms.forEach(form => {
+        form.addEventListener('submit', async function(event) {
+          event.preventDefault();
+          const formElement = event.target as HTMLFormElement;
+          const submitButton = formElement.querySelector('button[type="submit"]');
+          if (submitButton) {
+            (submitButton as HTMLButtonElement).disabled = true;
+            submitButton.textContent = 'Processing...';
+          }
+
+          const responseMessage = await submitUserMessage(handleFormSubmission(event));
+          console.log("Response from submission:", responseMessage);
+          setMessages(currentMessages => [...currentMessages, responseMessage]);
+        });
+      });
+    }
+
+    return () => {
+      clearInterval(containerReady);
+    };
+  }, [html, css, javascript]); // Dependencies on external props
+
+  return <div id="random-component-container"></div>;
+}
+
+
+
+
 
 export function SpinnerMessage() {
   return (

@@ -20,10 +20,13 @@ import { useRouter } from 'next/navigation'
 
 export function PromptForm({
   input,
-  setInput
+  setInput,
+  formData // Add formData prop here
 }: {
   input: string
   setInput: (value: string) => void
+  formData: { [key: string]: string }; // Define the type of formData
+
 }) {
   const router = useRouter()
   const { formRef, onKeyDown } = useEnterSubmit()
@@ -60,10 +63,11 @@ export function PromptForm({
             display: <UserMessage>{value}</UserMessage>
           }
         ])
-
+        console.log(value)
         // Submit and get response message
-        const responseMessage = await submitUserMessage(value)
-        setMessages(currentMessages => [...currentMessages, responseMessage])
+          const responseMessage = await submitUserMessage(value)
+          console.log(responseMessage);
+          setMessages(currentMessages => [...currentMessages, responseMessage])
       }}
     >
       <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
